@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/IndioInc/go-autoupdate/autoupdate"
-	"os"
+	"github.com/IndioInc/go-autoupdate"
 	"io/ioutil"
+	"os"
 )
 
 func printUsage() {
