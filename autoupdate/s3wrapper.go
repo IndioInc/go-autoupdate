@@ -48,7 +48,7 @@ func hasS3FileChanged(updater Updater) bool {
 
 	checkError(err)
 
-	return *result.ETag == lastETag
+	return *result.ETag != lastETag
 }
 
 // Gets an S3 file and returns the body and ETag
@@ -105,7 +105,7 @@ func downloadLatestRelease(updater Updater) string {
 
 	ensureDirectoryExists(updater.ReleasesDirectory)
 	releaseFilename := getLocalReleaseFilename(updater.ReleasesDirectory, version)
-	outFile, err := os.Create(releaseFilename)
+	outFile, err := os.OpenFile(releaseFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 
 	checkError(err)
 	defer outFile.Close()

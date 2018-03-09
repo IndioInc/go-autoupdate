@@ -12,7 +12,6 @@ type Updater struct {
 	AppName           string
 	CheckInterval     int
 	ReleasesDirectory string
-	CurrentVersion    string
 }
 
 var cmd *exec.Cmd
@@ -25,7 +24,10 @@ func startApplication(filename string) {
 	}
 	cmd = exec.Command(filename)
 
-	cmd.Start()
+	err := cmd.Start()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func RunAutoupdater(updater Updater) {

@@ -28,5 +28,5 @@ func getReleaseFileKey(appName string, channel string, version string) string {
 }
 
 func ensureDirectoryExists(directoryName string) {
-	os.MkdirAll(directoryName, 0644)
+	os.MkdirAll(directoryName, 0775)
 }
