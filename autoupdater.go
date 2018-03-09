@@ -1,6 +1,7 @@
 package autoupdate
 
 import (
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -23,6 +24,8 @@ func startApplication(filename string) {
 		checkError(err)
 	}
 	cmd = exec.Command(filename)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	err := cmd.Start()
 	if err != nil {
