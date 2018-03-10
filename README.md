@@ -1,4 +1,4 @@
-#go-autoupdate
+# go-autoupdate
 
 ## Description 
 
@@ -43,7 +43,9 @@ Stdout and Stderr is being forwarded to the updater process.
 
 ### Making releases
 
-First, compile your application for all environments you wish the application to work storing them in `releases/` directory (or whatever you set in config). 
+First, run `release init your-app stable company-releases-bucket`
+
+Compile your application for all environments you wish the application to work storing them in `releases/` directory (or whatever you set in config). 
 
 Names of the binaries need to follow naming convention of `{{GOOS}}-{{GOARCH}}`.
 

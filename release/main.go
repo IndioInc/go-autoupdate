@@ -13,7 +13,28 @@ import (
 func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("\trelease help")
+	fmt.Println("\trelease init <appName> <channel> <s3Bucket>")
 	fmt.Println("\trelease add <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
+}
+
+func initBucket() {
+	appName := flag.Arg(1)
+	channel := flag.Arg(2)
+	s3Bucket := flag.Arg(3)
+	if flag.NArg() != 4 {
+		printUsage()
+		os.Exit(1)
+	}
+	versions := autoupdate.VersionFile{
+		Versions: make([]string, 0),
+		LastVersion: "",
+	}
+	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
+
+	emptyVersionsFile, _ := json.Marshal(versions)
+	fmt.Println("Uploading empty " + versionFileKey + " file")
+
+	autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
 }
 
 func release() {
@@ -74,6 +95,8 @@ func main() {
 	switch applicationMode {
 	case "add":
 		release()
+	case "init":
+		initBucket()
 	default:
 		printUsage()
 		os.Exit(1)
