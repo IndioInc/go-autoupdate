@@ -12,9 +12,9 @@ import (
 
 func printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("\trelease help")
-	fmt.Println("\trelease init <appName> <channel> <s3Bucket>")
-	fmt.Println("\trelease add <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
+	fmt.Println("\tgo-autoupdate help")
+	fmt.Println("\tgo-autoupdate init <appName> <channel> <s3Bucket>")
+	fmt.Println("\tgo-autoupdate release <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
 }
 
 func initBucket() {
@@ -26,7 +26,7 @@ func initBucket() {
 		os.Exit(1)
 	}
 	versions := autoupdate.VersionFile{
-		Versions: make([]string, 0),
+		Versions:    make([]string, 0),
 		LastVersion: "",
 	}
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
@@ -93,7 +93,7 @@ func main() {
 	applicationMode := flag.Arg(0)
 
 	switch applicationMode {
-	case "add":
+	case "release":
 		release()
 	case "init":
 		initBucket()

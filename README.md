@@ -43,7 +43,7 @@ Stdout and Stderr is being forwarded to the updater process.
 
 ### Making releases
 
-First, run `release init your-app stable company-releases-bucket`
+First, run `go-autoudpate init your-app stable company-releases-bucket`
 
 Compile your application for all environments you wish the application to work storing them in `releases/` directory (or whatever you set in config). 
 
@@ -51,7 +51,7 @@ Names of the binaries need to follow naming convention of `{{GOOS}}-{{GOARCH}}`.
 
 After you've compiled all the binaries, use `release` command provided by this package to send the release to S3.
 
-`release add your-app stable company-releases-bucket releases $COMMIT_ID`.
+`go-autoupdate release your-app stable company-releases-bucket releases $COMMIT_ID`.
 
 All applications listening for changes will see that `version.json` file has changed in the bucket, download the new release for the correct GOOS-GOARCH pair, stop the old process with `SIGTERM` and start the new application version.
 
