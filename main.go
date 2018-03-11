@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/IndioInc/go-autoupdate"
+	"github.com/IndioInc/go-autoupdate/autoupdate"
 	"io/ioutil"
 	"os"
 )

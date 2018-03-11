@@ -21,7 +21,7 @@ updater/main.go
 package main
 
 import (
-	"github.com/IndioInc/go-autoupdate"
+	"github.com/IndioInc/go-autoupdate/autoupdate"
 )
 
 var updater = autoupdate.Updater{
