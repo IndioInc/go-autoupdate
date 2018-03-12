@@ -20,8 +20,7 @@ var cmd *exec.Cmd
 func startApplication(filename string) {
 	if cmd != nil {
 		cmd.Process.Signal(syscall.SIGTERM)
-		_, err := cmd.Process.Wait()
-		checkError(err)
+		cmd.Process.Wait()
 	}
 	cmd = exec.Command(filename)
 	cmd.Stdout = os.Stdout
@@ -31,6 +30,15 @@ func startApplication(filename string) {
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		cmd.Wait()
+		if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+			if cmd.ProcessState.Success() {
+				os.Exit(0)
+			}
+		}
+	}()
 }
 
 func RunAutoupdater(updater Updater) {
