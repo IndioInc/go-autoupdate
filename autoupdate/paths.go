@@ -7,7 +7,11 @@ import (
 )
 
 func getLocalReleaseFilename(releasesDirectory string, version string) string {
-	return fmt.Sprintf("%s/%s", releasesDirectory, version)
+	fileSuffix := ""
+	if runtime.GOOS == "windows" {
+		fileSuffix = ".exe"
+	}
+	return fmt.Sprintf("%s/%s%s", releasesDirectory, version, fileSuffix)
 }
 
 func GetFileKey(appName string, channel string, filename string) string {
