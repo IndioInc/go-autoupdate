@@ -3,7 +3,6 @@ package autoupdate
 import (
 	"os"
 	"os/exec"
-	"syscall"
 	"time"
 )
 
@@ -19,7 +18,7 @@ var cmd *exec.Cmd
 
 func startApplication(filename string) {
 	if cmd != nil {
-		cmd.Process.Signal(syscall.SIGTERM)
+		cmd.Process.Kill()
 		cmd.Process.Wait()
 	}
 	cmd = exec.Command(filename)
