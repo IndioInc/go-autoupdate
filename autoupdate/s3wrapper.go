@@ -3,6 +3,7 @@ package autoupdate
 import (
 	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -16,22 +17,29 @@ type VersionFile struct {
 	LastVersion string   `json:"lastVersion"`
 }
 
-func getS3Client() *s3.S3 {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String("us-east-1")})
+func getAwsSession(anonymousSession bool) *session.Session {
+	var awsSession *session.Session
+	config := &aws.Config{Region: aws.String("us-east-1")}
+	if anonymousSession {
+		config.Credentials = credentials.AnonymousCredentials
+	}
 
+	awsSession, err := session.NewSession(config)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return awsSession
+}
+
+func getS3Client(unauthenticatedDownload bool) *s3.S3 {
+	sess := getAwsSession(unauthenticatedDownload)
 
 	return s3.New(sess)
 }
 
 func getS3Uploader() *s3manager.Uploader {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String("us-east-1")})
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	sess := getAwsSession(false)
 
 	return s3manager.NewUploader(sess)
 }
@@ -39,7 +47,7 @@ func getS3Uploader() *s3manager.Uploader {
 var lastETag = ""
 
 func hasS3FileChanged(updater Updater) bool {
-	s3Client := getS3Client()
+	s3Client := getS3Client(updater.UnauthenticatedDownload)
 
 	result, err := s3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(updater.S3Bucket),
@@ -52,8 +60,8 @@ func hasS3FileChanged(updater Updater) bool {
 }
 
 // Gets an S3 file and returns the body and ETag
-func GetS3File(s3Bucket string, key string) (io.ReadCloser, string) {
-	s3Client := getS3Client()
+func GetS3File(s3Bucket string, key string, unauthenticatedDownload bool) (io.ReadCloser, string) {
+	s3Client := getS3Client(unauthenticatedDownload)
 
 	result, err := s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s3Bucket),
@@ -84,7 +92,7 @@ func UploadS3File(s3Bucket string, key string, file io.Reader) {
 func getLatestVersionTag(updater Updater) string {
 	var versions VersionFile
 
-	file, eTag := GetS3File(updater.S3Bucket, GetVersionFileKey(updater.AppName, updater.Channel))
+	file, eTag := GetS3File(updater.S3Bucket, GetVersionFileKey(updater.AppName, updater.Channel), updater.UnauthenticatedDownload)
 
 	lastETag = eTag
 
@@ -101,7 +109,7 @@ func downloadLatestRelease(updater Updater) string {
 
 	fileKey := getReleaseFileKey(updater.AppName, updater.Channel, version)
 
-	file, _ := GetS3File(updater.S3Bucket, fileKey)
+	file, _ := GetS3File(updater.S3Bucket, fileKey, updater.UnauthenticatedDownload)
 
 	ensureDirectoryExists(updater.ReleasesDirectory)
 	releaseFilename := getLocalReleaseFilename(updater.ReleasesDirectory, version)

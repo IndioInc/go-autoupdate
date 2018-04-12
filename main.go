@@ -72,7 +72,7 @@ func release() {
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
 
 	fmt.Println("Getting " + versionFileKey + " file")
-	versionFile, _ := autoupdate.GetS3File(s3Bucket, versionFileKey)
+	versionFile, _ := autoupdate.GetS3File(s3Bucket, versionFileKey, false)
 
 	var versions autoupdate.VersionFile
 

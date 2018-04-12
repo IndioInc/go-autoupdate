@@ -7,11 +7,12 @@ import (
 )
 
 type Updater struct {
-	S3Bucket          string
-	Channel           string
-	AppName           string
-	CheckInterval     int
-	ReleasesDirectory string
+	S3Bucket                string
+	Channel                 string
+	AppName                 string
+	CheckInterval           int
+	ReleasesDirectory       string
+	UnauthenticatedDownload bool
 }
 
 var cmd *exec.Cmd

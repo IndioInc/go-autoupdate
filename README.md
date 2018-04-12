@@ -25,11 +25,12 @@ import (
 )
 
 var updater = autoupdate.Updater{
-	S3Bucket:          "company-releases-bucket", // Used for storing releases
-	AppName:           "your-app",                // Used for namespacing your releases
-	Channel:           "stable",                  // used for prefixing builds on S3
-	CheckInterval:     10,                        // in seconds
-	ReleasesDirectory: "releases",                // local releases directory (relative to this file)
+	S3Bucket:                "company-releases-bucket", // Used for storing releases
+	AppName:                 "your-app",                // Used for namespacing your releases
+	Channel:                 "stable",                  // used for prefixing builds on S3
+	CheckInterval:           10,                        // in seconds
+	ReleasesDirectory:       "releases",                // local releases directory (relative to this file)
+	UnauthenticatedDownload: true,              
 }
 
 func main() {
