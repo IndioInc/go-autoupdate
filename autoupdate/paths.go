@@ -2,16 +2,26 @@ package autoupdate
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 )
+
+func getBaseFolderPath() string {
+	executable, err := os.Executable()
+	if err != nil {
+		log.Panic(err)
+	}
+	return filepath.Dir(executable)
+}
 
 func getLocalReleaseFilename(releasesDirectory string, version string) string {
 	fileSuffix := ""
 	if runtime.GOOS == "windows" {
 		fileSuffix = ".exe"
 	}
-	return fmt.Sprintf("%s/%s%s", releasesDirectory, version, fileSuffix)
+	return fmt.Sprintf("%s/%s/%s%s", getBaseFolderPath(), releasesDirectory, version, fileSuffix)
 }
 
 func GetFileKey(appName string, channel string, filename string) string {
@@ -32,5 +42,5 @@ func getReleaseFileKey(appName string, channel string, version string) string {
 }
 
 func ensureDirectoryExists(directoryName string) {
-	os.MkdirAll(directoryName, 0775)
+	os.MkdirAll(getBaseFolderPath()+"/"+directoryName, 0775)
 }
