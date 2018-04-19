@@ -1,8 +1,6 @@
 package autoupdate
 
 import (
-	"os"
-	"os/exec"
 	"time"
 )
 
@@ -15,30 +13,18 @@ type Updater struct {
 	UnauthenticatedDownload bool
 }
 
-var cmd *exec.Cmd
+var cmd *command
 
 func startApplication(filename string) {
-	if cmd != nil {
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-	}
-	cmd = exec.Command(filename)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	StopRunningApplication()
+
+	cmd = createCommand(filename)
 
 	err := cmd.Start()
 	if err != nil {
 		panic(err)
 	}
-
-	go func() {
-		cmd.Wait()
-		if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-			if cmd.ProcessState.Success() {
-				os.Exit(0)
-			}
-		}
-	}()
+	cmd.listenForStop()
 }
 
 func RunAutoupdater(updater Updater) {
@@ -49,5 +35,11 @@ func RunAutoupdater(updater Updater) {
 			startApplication(releaseFilename)
 		}
 		time.Sleep(time.Duration(updater.CheckInterval) * time.Second)
+	}
+}
+
+func StopRunningApplication() {
+	if cmd != nil {
+		cmd.stop()
 	}
 }
