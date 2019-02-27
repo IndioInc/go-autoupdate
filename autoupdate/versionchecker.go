@@ -5,12 +5,10 @@ import (
 	"os"
 )
 
-const versionFileName = ".go-autoupdate-version"
-
-func wasUpdated(latestVersion string) (bool, error) {
-	f, err := ioutil.ReadFile(versionFileName)
+func wasUpdated(updater *updater, latestVersion string) (bool, error) {
+	f, err := ioutil.ReadFile(updater.versionFilePath)
 	if os.IsNotExist(err) {
-		err = updateCurrentVersion(latestVersion)
+		err = updateCurrentVersion(updater, latestVersion)
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -21,6 +19,6 @@ func wasUpdated(latestVersion string) (bool, error) {
 	return currentVersion != latestVersion, err
 }
 
-func updateCurrentVersion(release string) error {
-	return ioutil.WriteFile(versionFileName, []byte(release), 0644)
+func updateCurrentVersion(updater *updater, release string) error {
+	return ioutil.WriteFile(updater.versionFilePath, []byte(release), 0644)
 }

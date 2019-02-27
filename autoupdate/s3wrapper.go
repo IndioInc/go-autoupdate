@@ -17,14 +17,17 @@ type VersionFile struct {
 	LastVersion string   `json:"lastVersion"`
 }
 
-func getAwsSession() (*session.Session, error) {
-	config := &aws.Config{Region: aws.String("us-east-1"), Credentials: credentials.AnonymousCredentials}
+func getAwsSession(anonymousSession bool) (*session.Session, error) {
+	config := &aws.Config{Region: aws.String("us-east-1")}
+	if anonymousSession {
+		config.Credentials = credentials.AnonymousCredentials
+	}
 
 	return session.NewSession(config)
 }
 
-func getS3Client() (*s3.S3, error) {
-	sess, err := getAwsSession()
+func getS3Client(anonymousSession bool) (*s3.S3, error) {
+	sess, err := getAwsSession(anonymousSession)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +36,7 @@ func getS3Client() (*s3.S3, error) {
 }
 
 func getS3Uploader() (*s3manager.Uploader, error) {
-	sess, err := getAwsSession()
+	sess, err := getAwsSession(false)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +45,8 @@ func getS3Uploader() (*s3manager.Uploader, error) {
 }
 
 // Gets an S3 file and returns the body and ETag
-func GetS3File(s3Bucket string, key string) (io.ReadCloser, error) {
-	s3Client, err := getS3Client()
+func GetS3File(s3Bucket string, key string, anonymousSession bool) (io.ReadCloser, error) {
+	s3Client, err := getS3Client(anonymousSession)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +83,7 @@ func UploadS3File(s3Bucket string, key string, file io.Reader) error {
 func getLatestVersionTag(updater *updater) (string, error) {
 	var versions VersionFile
 
-	file, err := GetS3File(updater.s3Bucket, GetVersionFileKey(updater.appName, updater.channel))
+	file, err := GetS3File(updater.s3Bucket, GetVersionFileKey(updater.appName, updater.channel), true)
 	if err != nil {
 		return "", err
 	}
@@ -90,22 +93,27 @@ func getLatestVersionTag(updater *updater) (string, error) {
 	return versions.LastVersion, err
 }
 
-func downloadRelease(updater *updater, version string) error {
+func downloadRelease(updater *updater) (string, error) {
+	version, err := getLatestVersionTag(updater)
+	if err != nil {
+		return "", err
+	}
+
 	fileKey := getReleaseFileKey(updater.appName, updater.channel, version)
 
-	file, err := GetS3File(updater.s3Bucket, fileKey)
+	file, err := GetS3File(updater.s3Bucket, fileKey, true)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	releaseFilename, err := getNewReleaseFilename()
 	if err != nil {
-		return err
+		return "", err
 	}
 	fmt.Println(releaseFilename)
 	outFile, err := os.OpenFile(releaseFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	fmt.Println("saving file", releaseFilename)
@@ -114,7 +122,7 @@ func downloadRelease(updater *updater, version string) error {
 
 	_, err = io.Copy(outFile, file)
 
-	return err
+	return version, err
 }
 
 func swapReleaseFiles() error {

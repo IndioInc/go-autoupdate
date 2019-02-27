@@ -34,7 +34,10 @@ func initBucket() {
 	emptyVersionsFile, _ := json.Marshal(versions)
 	fmt.Println("Uploading empty " + versionFileKey + " file")
 
-	autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
+	err := autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func release() {
@@ -62,11 +65,17 @@ func release() {
 		}
 		fileKey := autoupdate.GetFileKey(appName, channel, releaseTag+"/"+file.Name())
 		fmt.Println("Uploading " + fileKey + " file")
-		autoupdate.UploadS3File(s3Bucket,
+		err = autoupdate.UploadS3File(s3Bucket,
 			fileKey,
 			fileBody,
 		)
-		fileBody.Close()
+		if err != nil {
+			panic(err)
+		}
+		err = fileBody.Close()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
@@ -76,7 +85,10 @@ func release() {
 
 	var versions autoupdate.VersionFile
 
-	json.NewDecoder(versionFile).Decode(&versions)
+	err = json.NewDecoder(versionFile).Decode(&versions)
+	if err != nil {
+		panic(err)
+	}
 
 	versions.Versions = append(versions.Versions, releaseTag)
 	versions.LastVersion = releaseTag
@@ -84,7 +96,10 @@ func release() {
 	updatedVersionsFile, _ := json.Marshal(versions)
 
 	fmt.Println("Uploading " + versionFileKey + " file")
-	autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(updatedVersionsFile))
+	err = autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(updatedVersionsFile))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
