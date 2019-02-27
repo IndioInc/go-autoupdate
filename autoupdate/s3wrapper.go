@@ -2,13 +2,13 @@ package autoupdate
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
-	"log"
 	"os"
 )
 
@@ -17,109 +17,124 @@ type VersionFile struct {
 	LastVersion string   `json:"lastVersion"`
 }
 
-func getAwsSession(anonymousSession bool) *session.Session {
-	var awsSession *session.Session
-	config := &aws.Config{Region: aws.String("us-east-1")}
-	if anonymousSession {
-		config.Credentials = credentials.AnonymousCredentials
-	}
+func getAwsSession() (*session.Session, error) {
+	config := &aws.Config{Region: aws.String("us-east-1"), Credentials: credentials.AnonymousCredentials}
 
-	awsSession, err := session.NewSession(config)
+	return session.NewSession(config)
+}
+
+func getS3Client() (*s3.S3, error) {
+	sess, err := getAwsSession()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return awsSession
+	return s3.New(sess), nil
 }
 
-func getS3Client(unauthenticatedDownload bool) *s3.S3 {
-	sess := getAwsSession(unauthenticatedDownload)
+func getS3Uploader() (*s3manager.Uploader, error) {
+	sess, err := getAwsSession()
+	if err != nil {
+		return nil, err
+	}
 
-	return s3.New(sess)
-}
-
-func getS3Uploader() *s3manager.Uploader {
-	sess := getAwsSession(false)
-
-	return s3manager.NewUploader(sess)
-}
-
-var lastETag = ""
-
-func hasS3FileChanged(updater Updater) bool {
-	s3Client := getS3Client(updater.UnauthenticatedDownload)
-
-	result, err := s3Client.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(updater.S3Bucket),
-		Key:    aws.String(GetVersionFileKey(updater.AppName, updater.Channel)),
-	})
-
-	checkError(err)
-
-	return *result.ETag != lastETag
+	return s3manager.NewUploader(sess), nil
 }
 
 // Gets an S3 file and returns the body and ETag
-func GetS3File(s3Bucket string, key string, unauthenticatedDownload bool) (io.ReadCloser, string) {
-	s3Client := getS3Client(unauthenticatedDownload)
-
+func GetS3File(s3Bucket string, key string) (io.ReadCloser, error) {
+	s3Client, err := getS3Client()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(s3Bucket, key)
 	result, err := s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(key),
 	})
 
-	checkError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	file := result.Body
 
-	return file, *result.ETag
+	return file, nil
 }
 
-func UploadS3File(s3Bucket string, key string, file io.Reader) {
-	uploader := getS3Uploader()
+func UploadS3File(s3Bucket string, key string, file io.Reader) error {
+	uploader, err := getS3Uploader()
+	if err != nil {
+		return err
+	}
 
-	_, err := uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(key),
 		Body:   file,
 	})
 
-	if err != nil {
-		panic(err)
-	}
+	return err
 }
 
-func getLatestVersionTag(updater Updater) string {
+func getLatestVersionTag(updater *updater) (string, error) {
 	var versions VersionFile
 
-	file, eTag := GetS3File(updater.S3Bucket, GetVersionFileKey(updater.AppName, updater.Channel), updater.UnauthenticatedDownload)
+	file, err := GetS3File(updater.s3Bucket, GetVersionFileKey(updater.appName, updater.channel))
+	if err != nil {
+		return "", err
+	}
 
-	lastETag = eTag
+	err = json.NewDecoder(file).Decode(&versions)
 
-	err := json.NewDecoder(file).Decode(&versions)
-
-	checkError(err)
-
-	return versions.LastVersion
+	return versions.LastVersion, err
 }
 
-// Downloads latest release and returns the filename
-func downloadLatestRelease(updater Updater) string {
-	version := getLatestVersionTag(updater)
+func downloadRelease(updater *updater, version string) error {
+	fileKey := getReleaseFileKey(updater.appName, updater.channel, version)
 
-	fileKey := getReleaseFileKey(updater.AppName, updater.Channel, version)
+	file, err := GetS3File(updater.s3Bucket, fileKey)
+	if err != nil {
+		return err
+	}
 
-	file, _ := GetS3File(updater.S3Bucket, fileKey, updater.UnauthenticatedDownload)
-
-	ensureDirectoryExists(updater.ReleasesDirectory)
-	releaseFilename := getLocalReleaseFilename(updater.ReleasesDirectory, version)
+	releaseFilename, err := getNewReleaseFilename()
+	if err != nil {
+		return err
+	}
+	fmt.Println(releaseFilename)
 	outFile, err := os.OpenFile(releaseFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
 
-	checkError(err)
+	fmt.Println("saving file", releaseFilename)
+
 	defer outFile.Close()
 
 	_, err = io.Copy(outFile, file)
-	checkError(err)
 
-	return releaseFilename
+	return err
+}
+
+func swapReleaseFiles() error {
+	oldFileName, err := getOldReleaseFilename()
+	if err != nil {
+		return err
+	}
+	releaseFilename, err := getLocalReleaseFilename()
+	if err != nil {
+		return err
+	}
+	newFileName, err := getNewReleaseFilename()
+	if err != nil {
+		return err
+	}
+	err = os.Rename(releaseFilename, oldFileName)
+	if err != nil {
+		return err
+	}
+	err = os.Rename(newFileName, releaseFilename)
+
+	return err
 }

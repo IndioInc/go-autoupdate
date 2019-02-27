@@ -4,7 +4,7 @@
 
 This package provides way to create auto-updating go-lang applications.
 
-You can achieve that by uploading your binary files into an S3 bucket and making listening for changes in a separate file (see example below).
+You can achieve that by uploading your binary files into an S3 bucket and listening for changes in a goroutine
 
 ## Installation
 
@@ -24,17 +24,16 @@ import (
 	"github.com/IndioInc/go-autoupdate/autoupdate"
 )
 
-var updater = autoupdate.Updater{
-	S3Bucket:                "company-releases-bucket", // Used for storing releases
-	AppName:                 "your-app",                // Used for namespacing your releases
-	Channel:                 "stable",                  // used for prefixing builds on S3
-	CheckInterval:           10,                        // in seconds
-	ReleasesDirectory:       "releases",                // local releases directory (relative to this file)
-	UnauthenticatedDownload: true,              
-}
+var updater = autoupdate.NewUpdater("company-releases-bucket", "your-app", "stable")
 
 func main() {
-	autoupdate.RunAutoupdater(updater)
+	go func () {
+		err := autoupdate.RunAutoupdater(updater)
+		// Handle application shutdown
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
 ```
 
