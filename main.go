@@ -81,11 +81,11 @@ func release() {
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
 
 	fmt.Println("Getting " + versionFileKey + " file")
-	versionFile, _ := autoupdate.GetS3File(s3Bucket, versionFileKey, false)
+	versionFile, _ := autoupdate.GetS3File(s3Bucket, versionFileKey, false, nil)
 
 	var versions autoupdate.VersionFile
 
-	err = json.NewDecoder(versionFile).Decode(&versions)
+	err = json.Unmarshal(versionFile, &versions)
 	if err != nil {
 		panic(err)
 	}

@@ -3,11 +3,20 @@ package autoupdate
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 )
 
 func getLocalReleaseFilename() (string, error) {
 	return os.Executable()
+}
+
+func getExecutableDirectory() (string, error) {
+	executable, err := getLocalReleaseFilename()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(executable), nil
 }
 
 func getNewReleaseFilename() (string, error) {

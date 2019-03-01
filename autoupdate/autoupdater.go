@@ -6,7 +6,7 @@ import (
 )
 
 // Updater configuration. Use NewUpdater() to construct this, then use setters to change some of the additional params
-type updater struct {
+type Updater struct {
 	s3Bucket          string
 	channel           string
 	appName           string
@@ -15,8 +15,8 @@ type updater struct {
 	versionFilePath   string
 }
 
-func NewUpdater(s3Bucket string, channel string, appName string, versionFile string) *updater {
-	return &updater{
+func NewUpdater(s3Bucket string, channel string, appName string, versionFile string) *Updater {
+	return &Updater{
 		s3Bucket:          s3Bucket,
 		channel:           channel,
 		appName:           appName,
@@ -26,11 +26,11 @@ func NewUpdater(s3Bucket string, channel string, appName string, versionFile str
 	}
 }
 
-func (u *updater) SetInterval(interval int) {
+func (u *Updater) SetInterval(interval int) {
 	u.checkInterval = interval
 }
 
-func (u *updater) SetReleaseDirectory(releaseDirectory string) {
+func (u *Updater) SetReleaseDirectory(releaseDirectory string) {
 	u.releasesDirectory = releaseDirectory
 }
 
@@ -38,7 +38,7 @@ func (u *updater) SetReleaseDirectory(releaseDirectory string) {
 Starts autoupdater. When release file has changed, the application gets downloaded and then stopped.
 It is developer's job to make sure the application gets restarted (most of the time using a service)
 */
-func RunAutoupdater(updater *updater, shutdownCallback func(error)) {
+func RunAutoupdater(updater *Updater, shutdownCallback func(error)) {
 	err := func() error {
 		for {
 			changed, err := IsNewVersionAvailable(updater)
@@ -47,7 +47,7 @@ func RunAutoupdater(updater *updater, shutdownCallback func(error)) {
 			}
 
 			if changed {
-				err := UpdateApplication(updater)
+				err := UpdateApplication(updater, nil)
 				if err != nil {
 					return err
 				}
@@ -69,7 +69,7 @@ func RunAutoupdater(updater *updater, shutdownCallback func(error)) {
 /*
 Runs update check once. Returns if there's new version available to be downloaded. If so, you can run UpdateApplication function
 */
-func IsNewVersionAvailable(updater *updater) (bool, error) {
+func IsNewVersionAvailable(updater *Updater) (bool, error) {
 	latestTag, err := getLatestVersionTag(updater)
 	if err != nil {
 		return false, err
@@ -80,8 +80,8 @@ func IsNewVersionAvailable(updater *updater) (bool, error) {
 /*
 Updates the application. To see if you should run this, first you should call `IsNewersionAvailable`
 */
-func UpdateApplication(updater *updater) error {
-	releaseVersion, err := downloadRelease(updater)
+func UpdateApplication(updater *Updater, progressCallback func(int)) error {
+	releaseVersion, err := downloadRelease(updater, progressCallback)
 	if err != nil {
 		return err
 	}
