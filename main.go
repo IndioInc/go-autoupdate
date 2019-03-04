@@ -15,6 +15,7 @@ func printUsage() {
 	fmt.Println("\tgo-autoupdate help")
 	fmt.Println("\tgo-autoupdate init <appName> <channel> <s3Bucket>")
 	fmt.Println("\tgo-autoupdate release <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
+	fmt.Println("\tgo-autoupdate download-latest <appName> <channel> <s3Bucket> <outputName>")
 }
 
 func initBucket() {
@@ -35,6 +36,43 @@ func initBucket() {
 	fmt.Println("Uploading empty " + versionFileKey + " file")
 
 	err := autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
+	if err != nil {
+		panic(err)
+	}
+}
+func downloadLatest() {
+	appName := flag.Arg(1)
+	channel := flag.Arg(2)
+	s3Bucket := flag.Arg(3)
+	outputName := flag.Arg(4)
+	if flag.NArg() != 5 {
+		printUsage()
+		os.Exit(1)
+	}
+	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
+	fmt.Println("Fetching " + versionFileKey + "file")
+
+	versionFile, err := autoupdate.GetS3File(s3Bucket, versionFileKey, false, nil)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var versions autoupdate.VersionFile
+
+	err = json.Unmarshal(versionFile, &versions)
+	if err != nil {
+		panic(err)
+	}
+
+	releaseFileKey := autoupdate.GetFileKey(appName, channel, versions.LastVersion+"/"+"windows-amd64")
+	fmt.Println("Fetching " + releaseFileKey + "file")
+	releaseFile, err := autoupdate.GetS3File(s3Bucket, releaseFileKey, false, func(i int) {
+		fmt.Printf("\rDownloading file %v: %v%%", releaseFileKey, i)
+	})
+	fmt.Println("... Done")
+
+	err = ioutil.WriteFile(outputName, releaseFile, 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -112,6 +150,8 @@ func main() {
 		release()
 	case "init":
 		initBucket()
+	case "download-latest":
+		downloadLatest()
 	default:
 		printUsage()
 		os.Exit(1)

@@ -17,21 +17,16 @@ type Updater struct {
 
 func NewUpdater(s3Bucket string, channel string, appName string, versionFile string) *Updater {
 	return &Updater{
-		s3Bucket:          s3Bucket,
-		channel:           channel,
-		appName:           appName,
-		checkInterval:     10,
-		releasesDirectory: "releases",
-		versionFilePath:   versionFile,
+		s3Bucket:        s3Bucket,
+		channel:         channel,
+		appName:         appName,
+		checkInterval:   10,
+		versionFilePath: versionFile,
 	}
 }
 
 func (u *Updater) SetInterval(interval int) {
 	u.checkInterval = interval
-}
-
-func (u *Updater) SetReleaseDirectory(releaseDirectory string) {
-	u.releasesDirectory = releaseDirectory
 }
 
 /*
