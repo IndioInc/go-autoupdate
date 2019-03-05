@@ -21,19 +21,25 @@ updater/main.go
 package main
 
 import (
-	"github.com/IndioInc/go-autoupdate/autoupdate"
+    "github.com/IndioInc/go-autoupdate/autoupdate"
 )
 
-var updater = autoupdate.NewUpdater("company-releases-bucket", "your-app", "stable")
+var updater = autoupdate.NewUpdater(
+    "company-releases-bucket", 
+    "your-app",
+    "stable",
+    ".app-version",
+)
 
 func main() {
-	go func () {
-		err := autoupdate.RunAutoupdater(updater)
-		// Handle application shutdown
-		if err != nil {
-			panic(err)
-		}
-	}()
+    go autoupdate.RunAutoupdater(updater, func(err error) {
+        // gracefully handle shutdown
+        if err != nil {
+            panic(err)
+        }
+    })
+    
+    // do actual application stuff
 }
 ```
 
