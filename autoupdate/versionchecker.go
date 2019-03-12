@@ -22,7 +22,7 @@ func wasUpdated(updater *Updater, latestVersion string) (bool, error) {
 	f, err := ioutil.ReadFile(versionFilePath)
 	if os.IsNotExist(err) {
 		err = updateCurrentVersion(updater, latestVersion)
-		return false, nil
+		return false, err
 	} else if err != nil {
 		return false, err
 	}

@@ -70,6 +70,9 @@ func downloadLatest() {
 	releaseFile, err := autoupdate.GetS3File(s3Bucket, releaseFileKey, false, func(i int) {
 		fmt.Printf("\rDownloading file %v: %v%%", releaseFileKey, i)
 	})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("... Done")
 
 	err = ioutil.WriteFile(outputName, releaseFile, 0755)

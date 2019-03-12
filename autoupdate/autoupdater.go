@@ -11,7 +11,6 @@ type Updater struct {
 	channel           string
 	appName           string
 	checkInterval     int
-	releasesDirectory string
 	versionFilePath   string
 }
 
