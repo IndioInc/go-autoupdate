@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/IndioInc/go-autoupdate/autoupdate"
 	"io/ioutil"
 	"os"
+
+	"github.com/IndioInc/go-autoupdate/autoupdate"
 )
 
 func printUsage() {
@@ -50,7 +51,7 @@ func downloadLatest() {
 		os.Exit(1)
 	}
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
-	fmt.Println("Fetching " + versionFileKey + "file")
+	fmt.Println("Fetching " + versionFileKey + " file")
 
 	versionFile, err := autoupdate.GetS3File(s3Bucket, versionFileKey, false, nil)
 
@@ -66,7 +67,7 @@ func downloadLatest() {
 	}
 
 	releaseFileKey := autoupdate.GetFileKey(appName, channel, versions.LastVersion+"/"+"windows-amd64")
-	fmt.Println("Fetching " + releaseFileKey + "file")
+	fmt.Println("Fetching " + releaseFileKey + " file")
 	releaseFile, err := autoupdate.GetS3File(s3Bucket, releaseFileKey, false, func(i int) {
 		fmt.Printf("\rDownloading file %v: %v%%", releaseFileKey, i)
 	})

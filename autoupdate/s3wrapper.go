@@ -2,14 +2,14 @@ package autoupdate
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"io"
-	"os"
 )
 
 type VersionFile struct {
@@ -130,13 +130,11 @@ func downloadRelease(updater *Updater, progressCallback func(int)) (string, erro
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(releaseFilename)
+
 	outFile, err := os.OpenFile(releaseFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("saving file", releaseFilename)
 
 	defer outFile.Close()
 

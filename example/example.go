@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/IndioInc/go-autoupdate/autoupdate"
-	"runtime"
 	"time"
+
+	"github.com/IndioInc/go-autoupdate/autoupdate"
 )
 
 var updater = autoupdate.NewUpdater(
@@ -15,8 +15,7 @@ var updater = autoupdate.NewUpdater(
 )
 
 func main() {
-	fmt.Println("Starting application Application")
-	fmt.Println(runtime.GOOS, runtime.GOARCH)
+	fmt.Println("Starting Application")
 	go autoupdate.RunAutoupdater(updater, func(err error) {
 		// gracefully handle shutdown
 		if err != nil {
@@ -25,6 +24,5 @@ func main() {
 	})
 	for {
 		time.Sleep(1 * time.Second)
-		fmt.Println("Barr")
 	}
 }

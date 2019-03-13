@@ -11,6 +11,7 @@ func getVersionFilePath(updater *Updater) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return dir + "/" + updater.versionFilePath, nil
 }
 
@@ -19,6 +20,7 @@ func wasUpdated(updater *Updater, latestVersion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	f, err := ioutil.ReadFile(versionFilePath)
 	if os.IsNotExist(err) {
 		err = updateCurrentVersion(updater, latestVersion)
@@ -37,5 +39,6 @@ func updateCurrentVersion(updater *Updater, release string) error {
 	if err != nil {
 		return err
 	}
+
 	return ioutil.WriteFile(versionFilePath, []byte(release), 0644)
 }
