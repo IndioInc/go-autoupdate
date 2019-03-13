@@ -2,26 +2,37 @@ package autoupdate
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
-func getBaseFolderPath() string {
-	executable, err := os.Executable()
-	if err != nil {
-		log.Panic(err)
-	}
-	return filepath.Dir(executable)
+func getLocalReleaseFilename() (string, error) {
+	return os.Executable()
 }
 
-func getLocalReleaseFilename(releasesDirectory string, version string) string {
-	fileSuffix := ""
-	if runtime.GOOS == "windows" {
-		fileSuffix = ".exe"
+func getExecutableDirectory() (string, error) {
+	executable, err := getLocalReleaseFilename()
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("%s/%s/%s%s", getBaseFolderPath(), releasesDirectory, version, fileSuffix)
+	return filepath.Dir(executable), nil
+}
+
+func getNewReleaseFilename() (string, error) {
+	fileName, err := getLocalReleaseFilename()
+	if err != nil {
+		return "", err
+	}
+	return fileName + ".new", nil
+}
+
+func getOldReleaseFilename() (string, error) {
+	fileName, err := getLocalReleaseFilename()
+	if err != nil {
+		return "", err
+	}
+	return fileName + ".old", nil
 }
 
 func GetFileKey(appName string, channel string, filename string) string {
@@ -39,8 +50,4 @@ func getOsArch() string {
 func getReleaseFileKey(appName string, channel string, version string) string {
 	osArch := getOsArch()
 	return GetFileKey(appName, channel, fmt.Sprintf("%s/%s", version, osArch))
-}
-
-func ensureDirectoryExists(directoryName string) {
-	os.MkdirAll(getBaseFolderPath()+"/"+directoryName, 0775)
 }
