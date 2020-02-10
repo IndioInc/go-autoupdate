@@ -17,8 +17,7 @@ type VersionFile struct {
 	LastVersion string   `json:"lastVersion"`
 }
 
-func getAwsSession(anonymousSession bool) (*session.Session, error) {
-	config := &aws.Config{Region: aws.String("us-east-1")}
+func GetAwsSession(config *aws.Config, anonymousSession bool) (*session.Session, error) {
 	if anonymousSession {
 		config.Credentials = credentials.AnonymousCredentials
 	}
@@ -26,8 +25,8 @@ func getAwsSession(anonymousSession bool) (*session.Session, error) {
 	return session.NewSession(config)
 }
 
-func getS3Downloader(anonymousSession bool) (*s3manager.Downloader, error) {
-	sess, err := getAwsSession(anonymousSession)
+func getS3Downloader(config *aws.Config, anonymousSession bool) (*s3manager.Downloader, error) {
+	sess, err := GetAwsSession(config, anonymousSession)
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +34,8 @@ func getS3Downloader(anonymousSession bool) (*s3manager.Downloader, error) {
 	return s3manager.NewDownloader(sess), nil
 }
 
-func getS3Uploader() (*s3manager.Uploader, error) {
-	sess, err := getAwsSession(false)
+func getS3Uploader(config *aws.Config) (*s3manager.Uploader, error) {
+	sess, err := GetAwsSession(config, false)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +43,8 @@ func getS3Uploader() (*s3manager.Uploader, error) {
 	return s3manager.NewUploader(sess), nil
 }
 
-func getFileSize(s3Bucket string, key string, anonymousSession bool) (int64, error) {
-	awsSession, err := getAwsSession(anonymousSession)
+func getFileSize(config *aws.Config, s3Bucket string, key string, anonymousSession bool) (int64, error) {
+	awsSession, err := GetAwsSession(config, anonymousSession)
 	if err != nil {
 		return 0, err
 	}
@@ -62,13 +61,13 @@ func getFileSize(s3Bucket string, key string, anonymousSession bool) (int64, err
 }
 
 // Gets an S3 file and returns the body and error.
-func GetS3File(s3Bucket string, key string, anonymousSession bool, progressCallback func(int)) ([]byte, error) {
-	s3Downloader, err := getS3Downloader(anonymousSession)
+func GetS3File(config *aws.Config, s3Bucket string, key string, anonymousSession bool, progressCallback func(int)) ([]byte, error) {
+	s3Downloader, err := getS3Downloader(config, anonymousSession)
 	if err != nil {
 		return nil, err
 	}
 	temp := aws.NewWriteAtBuffer([]byte{})
-	size, err := getFileSize(s3Bucket, key, anonymousSession)
+	size, err := getFileSize(config, s3Bucket, key, anonymousSession)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +85,8 @@ func GetS3File(s3Bucket string, key string, anonymousSession bool, progressCallb
 	return writer.writer.Bytes(), nil
 }
 
-func UploadS3File(s3Bucket string, key string, file io.Reader) error {
-	uploader, err := getS3Uploader()
+func UploadS3File(config *aws.Config, s3Bucket string, key string, file io.Reader) error {
+	uploader, err := getS3Uploader(config)
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,7 @@ func UploadS3File(s3Bucket string, key string, file io.Reader) error {
 func getLatestVersionTag(updater *Updater) (string, error) {
 	var versions VersionFile
 
-	file, err := GetS3File(updater.s3Bucket, GetVersionFileKey(updater.appName, updater.channel), true, nil)
+	file, err := GetS3File(updater.awsConfig, updater.s3Bucket, GetVersionFileKey(updater.appName, updater.channel), true, nil)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +120,7 @@ func downloadRelease(updater *Updater, progressCallback func(int)) (string, erro
 
 	fileKey := getReleaseFileKey(updater.appName, updater.channel, version)
 
-	file, err := GetS3File(updater.s3Bucket, fileKey, true, progressCallback)
+	file, err := GetS3File(updater.awsConfig, updater.s3Bucket, fileKey, true, progressCallback)
 	if err != nil {
 		return "", err
 	}
