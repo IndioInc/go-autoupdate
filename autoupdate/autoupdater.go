@@ -3,6 +3,8 @@ package autoupdate
 import (
 	"os"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 // Updater configuration. Use NewUpdater() to construct this, then use setters to change some of the additional params
@@ -12,15 +14,38 @@ type Updater struct {
 	appName         string
 	checkInterval   int
 	versionFilePath string
+	awsConfig       *aws.Config
 }
 
-func NewUpdater(s3Bucket string, channel string, appName string, versionFile string) *Updater {
+func NewUpdater(
+	s3Bucket string,
+	channel string,
+	appName string,
+	versionFile string,
+	awsRegion string,
+	awsEndpoint *string,
+	awsDisableSSL bool,
+	s3ForcePathStyle bool,
+) *Updater {
+	config := aws.Config{
+		Region: aws.String(awsRegion),
+	}
+	if awsEndpoint != nil {
+		config.Endpoint = aws.String(*awsEndpoint)
+	}
+	if awsDisableSSL {
+		config.DisableSSL = aws.Bool(true)
+	}
+	if s3ForcePathStyle {
+		config.S3ForcePathStyle = aws.Bool(true)
+	}
 	return &Updater{
 		s3Bucket:        s3Bucket,
 		channel:         channel,
 		appName:         appName,
 		checkInterval:   10,
 		versionFilePath: versionFile,
+		awsConfig:       &config,
 	}
 }
 

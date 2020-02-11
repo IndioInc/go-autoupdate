@@ -29,6 +29,10 @@ var updater = autoupdate.NewUpdater(
     "your-app",
     "stable",
     ".app-version",
+    "us-east-1",
+    nil,
+    false,
+    false,
 )
 
 func main() {

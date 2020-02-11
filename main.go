@@ -9,17 +9,21 @@ import (
 	"os"
 
 	"github.com/IndioInc/go-autoupdate/autoupdate"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("\tgo-autoupdate help")
-	fmt.Println("\tgo-autoupdate init <appName> <channel> <s3Bucket>")
-	fmt.Println("\tgo-autoupdate release <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
-	fmt.Println("\tgo-autoupdate download-latest <appName> <channel> <s3Bucket> <outputName>")
+	fmt.Println("\tgo-autoupdate [flags] init <appName> <channel> <s3Bucket>")
+	fmt.Println("\tgo-autoupdate [flags] release <appName> <channel> <s3Bucket> <releasesDir> <releasesTag>")
+	fmt.Println("\tgo-autoupdate [flags] download-latest <appName> <channel> <s3Bucket> <outputName>")
+	fmt.Println("")
+	fmt.Println("Flags:")
+	flag.PrintDefaults()
 }
 
-func initBucket() {
+func initBucket(awsConfig *aws.Config) {
 	appName := flag.Arg(1)
 	channel := flag.Arg(2)
 	s3Bucket := flag.Arg(3)
@@ -36,12 +40,12 @@ func initBucket() {
 	emptyVersionsFile, _ := json.Marshal(versions)
 	fmt.Println("Uploading empty " + versionFileKey + " file")
 
-	err := autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
+	err := autoupdate.UploadS3File(awsConfig, s3Bucket, versionFileKey, bytes.NewReader(emptyVersionsFile))
 	if err != nil {
 		panic(err)
 	}
 }
-func downloadLatest() {
+func downloadLatest(awsConfig *aws.Config) {
 	appName := flag.Arg(1)
 	channel := flag.Arg(2)
 	s3Bucket := flag.Arg(3)
@@ -53,7 +57,7 @@ func downloadLatest() {
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
 	fmt.Println("Fetching " + versionFileKey + " file")
 
-	versionFile, err := autoupdate.GetS3File(s3Bucket, versionFileKey, false, nil)
+	versionFile, err := autoupdate.GetS3File(awsConfig, s3Bucket, versionFileKey, false, nil)
 
 	if err != nil {
 		panic(err)
@@ -68,7 +72,7 @@ func downloadLatest() {
 
 	releaseFileKey := autoupdate.GetFileKey(appName, channel, versions.LastVersion+"/"+"windows-amd64")
 	fmt.Println("Fetching " + releaseFileKey + " file")
-	releaseFile, err := autoupdate.GetS3File(s3Bucket, releaseFileKey, false, func(i int) {
+	releaseFile, err := autoupdate.GetS3File(awsConfig, s3Bucket, releaseFileKey, false, func(i int) {
 		fmt.Printf("\rDownloading file %v: %v%%", releaseFileKey, i)
 	})
 	if err != nil {
@@ -82,7 +86,7 @@ func downloadLatest() {
 	}
 }
 
-func release() {
+func release(awsConfig *aws.Config) {
 	appName := flag.Arg(1)
 	channel := flag.Arg(2)
 	s3Bucket := flag.Arg(3)
@@ -107,7 +111,9 @@ func release() {
 		}
 		fileKey := autoupdate.GetFileKey(appName, channel, releaseTag+"/"+file.Name())
 		fmt.Println("Uploading " + fileKey + " file")
-		err = autoupdate.UploadS3File(s3Bucket,
+		err = autoupdate.UploadS3File(
+			awsConfig,
+			s3Bucket,
 			fileKey,
 			fileBody,
 		)
@@ -123,7 +129,7 @@ func release() {
 	versionFileKey := autoupdate.GetVersionFileKey(appName, channel)
 
 	fmt.Println("Getting " + versionFileKey + " file")
-	versionFile, _ := autoupdate.GetS3File(s3Bucket, versionFileKey, false, nil)
+	versionFile, _ := autoupdate.GetS3File(awsConfig, s3Bucket, versionFileKey, false, nil)
 
 	var versions autoupdate.VersionFile
 
@@ -138,24 +144,41 @@ func release() {
 	updatedVersionsFile, _ := json.Marshal(versions)
 
 	fmt.Println("Uploading " + versionFileKey + " file")
-	err = autoupdate.UploadS3File(s3Bucket, versionFileKey, bytes.NewReader(updatedVersionsFile))
+	err = autoupdate.UploadS3File(awsConfig, s3Bucket, versionFileKey, bytes.NewReader(updatedVersionsFile))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func main() {
+	region := flag.String("region", "us-east-1", "S3 region")
+	endpoint := flag.String("endpoint", "", "S3 endpoint URL")
+	awsDisableSSL := flag.Bool("disable-ssl", false, "Disable SSL")
+	s3ForcePathStyle := flag.Bool("s3-force-path-style", false, "S3 force path style")
 	flag.Parse()
+
+	awsConfig := &aws.Config{
+		Region: aws.String(*region),
+	}
+	if *endpoint != "" {
+		awsConfig.Endpoint = aws.String(*endpoint)
+	}
+	if *awsDisableSSL {
+		awsConfig.DisableSSL = aws.Bool(true)
+	}
+	if *s3ForcePathStyle {
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+	}
 
 	applicationMode := flag.Arg(0)
 
 	switch applicationMode {
 	case "release":
-		release()
+		release(awsConfig)
 	case "init":
-		initBucket()
+		initBucket(awsConfig)
 	case "download-latest":
-		downloadLatest()
+		downloadLatest(awsConfig)
 	default:
 		printUsage()
 		os.Exit(1)
